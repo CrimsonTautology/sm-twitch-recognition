@@ -209,9 +209,12 @@ public ReceiveTwitchApi(HTTPRequestHandle:request, bool:successful, HTTPStatusCo
             json_object_get_string(channel, "status", status, sizeof(status));
             json_object_get_string(channel, "name", name, sizeof(name));
         }
+        CloseHandle(channel);
 
         //Do whatever
     }
+    CloseHandle(stream);
+    CloseHandle(json);
 }
 
 bool:IsEnabled()
