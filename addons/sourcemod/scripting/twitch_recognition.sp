@@ -31,6 +31,7 @@ public Plugin:myinfo =
     url = "https://github.com/CrimsonTautology/sm_twitch_recognition"
 };
 
+#define MAX_COMMUNITYID_LENGTH 18 
 
 new bool:g_DoTwitchCheck[MAXPLAYERS+1];
 new bool:g_HasTwitchChannel[MAXPLAYERS+1];
@@ -102,7 +103,7 @@ QuerySteamWorksApi(client)
     Format(url, sizeof(url),
             "%s%s", STEAM_WORKS_ROUTE, uid);
 
-    new HTTPRequestHandle:request = CreateIGARequest(url);
+    new HTTPRequestHandle:request = Steam_CreateHTTPRequest(HTTPMethod_POST, url);
 
     if(request == INVALID_HTTP_HANDLE)
     {
@@ -115,7 +116,7 @@ QuerySteamWorksApi(client)
     Steam_SendHTTPRequest(request, ReceiveSteamWorksApi, player);
 }
 
-ReceiveSteamWorksApi(HTTPRequestHandle:request, bool:successful, HTTPStatusCode:code, any:userid)
+public ReceiveSteamWorksApi(HTTPRequestHandle:request, bool:successful, HTTPStatusCode:code, any:userid)
 {
     new client = GetClientOfUserId(userid);
     if(!successful || code != HTTPStatusCode_OK)
@@ -136,10 +137,10 @@ ReceiveSteamWorksApi(HTTPRequestHandle:request, bool:successful, HTTPStatusCode:
 
     //Search user's steamworks data for twitch.tv urls.
     //We're assuming they would only put their own url on their page
-    new channel_regex = CompileRegex("twitch.tv/(\\w+)");
+    new Handle:channel_regex = CompileRegex("twitch.tv/(\\w+)");
     MatchRegex(channel_regex, data);
     
-    if(GetRegexSubstring(channel_regex, 1, channel, sizeof(channel)))
+    if(GetRegexSubString(channel_regex, 1, channel, sizeof(channel)))
     {
         //A twitch url was found; assume it is the player's
         g_HasTwitchChannel[client] = true;
@@ -156,18 +157,18 @@ QueryTwitchApi(client, String:channel[])
     Format(url, sizeof(url),
             "%s%s", TWITCH_ROUTE, channel);
 
-    new HTTPRequestHandle:request = CreateIGARequest(url);
+    new HTTPRequestHandle:request = Steam_CreateHTTPRequest(HTTPMethod_POST, url);
 
     if(request == INVALID_HTTP_HANDLE)
     {
         return;
     }
 
-    new player = client > 0 ? GetClientUserId(client) : 0;
+    new player = GetClientUserId(client);
     Steam_SendHTTPRequest(request, ReceiveTwitchApi, player);
 }
 
-ReceiveTwitchApi(HTTPRequestHandle:request, bool:successful, HTTPStatusCode:code, any:userid)
+public ReceiveTwitchApi(HTTPRequestHandle:request, bool:successful, HTTPStatusCode:code, any:userid)
 {
     new client = GetClientOfUserId(userid);
 
@@ -198,15 +199,15 @@ ReceiveTwitchApi(HTTPRequestHandle:request, bool:successful, HTTPStatusCode:code
         g_IsStreaming[client] = true;
 
         //Get more data
-        new String:display_name[128], String:status[128], name[128];
+        new String:display_name[128], String:status[128], String:name[128];
         new viewers = json_object_get_int(stream, "viewers");
 
         new Handle:channel = json_object_get(json, "channel");
         if(channel != INVALID_HANDLE)
         {
-            json_object_get_string(json, "display_name", display_name, sizeof(display_name));
-            json_object_get_string(json, "status", status, sizeof(status));
-            json_object_get_string(json, "name", name, sizeof(name));
+            json_object_get_string(channel, "display_name", display_name, sizeof(display_name));
+            json_object_get_string(channel, "status", status, sizeof(status));
+            json_object_get_string(channel, "name", name, sizeof(name));
         }
 
         //Do whatever
