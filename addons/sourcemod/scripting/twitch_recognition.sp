@@ -195,7 +195,18 @@ ReceiveTwitchApi(HTTPRequestHandle:request, bool:successful, HTTPStatusCode:code
         g_IsStreaming[client] = true;
 
         //Get more data
+        new String:display_name[128], String:status[128], name[128];
+        new viewers = json_object_get_int(stream, "viewers");
 
+        new Handle:channel = json_object_get(json, "channel");
+        if(channel != INVALID_HANDLE)
+        {
+            json_object_get_string(json, "display_name", display_name, sizeof(display_name));
+            json_object_get_string(json, "status", status, sizeof(status));
+            json_object_get_string(json, "name", name, sizeof(name));
+        }
+
+        //Do whatever
     }
 }
 
