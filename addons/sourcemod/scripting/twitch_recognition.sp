@@ -57,7 +57,7 @@ public OnPluginStart()
 
     g_Cvar_Enabled = CreateConVar("sm__plugin_name__enabled", "1", "Enabled");
 
-    AddCommandListener(Event_JoinClass, "joinclass");
+    HookEvent("player_spawn", Event_PlayerSpawn);
 
     RegConsoleCmd("sm_test", Command_Test, "TODO: TEST");
 }
@@ -81,15 +81,14 @@ public Action:Command_Test(client, args)
     return Plugin_Handled;
 }
 
-public Action:Event_JoinClass(client, const String:command[], args)
+public Event_PlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast)
 {
+    new client = GetClientOfUserId(GetEventInt(event, "userid"));
     if(g_DoTwitchCheck[client])
     {
         QuerySteamWorksApi(client);
         g_DoTwitchCheck[client] = false;
     }
-
-    return Plugin_Continue;
 }
 
 
