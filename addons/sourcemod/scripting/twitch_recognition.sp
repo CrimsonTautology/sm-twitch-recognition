@@ -28,6 +28,10 @@ public Plugin:myinfo =
 };
 
 
+new bool:g_DoTwitchCheck[MAXPLAYERS+1];
+new bool:g_HasTwitchChannel[MAXPLAYERS+1];
+new bool:g_IsStreaming[MAXPLAYERS+1];
+
 new Handle:g_Cvar_Enabled = INVALID_HANDLE;
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
@@ -49,13 +53,41 @@ public OnPluginStart()
 
     g_Cvar_Enabled = CreateConVar("sm__plugin_name__enabled", "1", "Enabled");
 
+    AddCommandListener(Event_JoinClass, "joinclass");
+
     RegConsoleCmd("sm_test", Command_Test, "TODO: TEST");
+}
+
+public OnClientConnected(client)
+{
+    g_DoTwitchCheck[client] = true;
+    g_HasTwitchChannel[client] = false;
+    g_IsStreaming[client] = false;
+}
+
+public OnClientDisconnect(client)
+{
+    g_DoTwitchCheck[client] = false;
+    g_HasTwitchChannel[client] = false;
+    g_IsStreaming[client] = false;
 }
 
 public Action:Command_Test(client, args)
 {
     return Plugin_Handled;
 }
+
+public Action:Event_JoinClass(client, const String:command[], args)
+{
+    if(g_DoTwitchCheck[client])
+    {
+        QuerySteamWorksApi(client);
+        g_DoTwitchCheck[client] = false;
+    }
+
+    return Plugin_Continue;
+}
+
 
 QuerySteamWorksApi(client)
 {
@@ -94,12 +126,20 @@ ReceiveSteamWorksApi(HTTPRequestHandle:request, bool:successful, HTTPStatusCode:
     Steam_GetHTTPResponseBodyData(request, data, sizeof(data));
     Steam_ReleaseHTTPRequest(request);
 
-    //Search user's steamworks data for twitch.tv urls.  We're assuming they but their own url on their page
+    //NOTE : This is very sloppy; the text returned could well beover 20kb;
+    //most of the group and owned game stuff is useless or could contain
+    //false-positive twitch urls.  However the more useful SteamApi does not
+    //query a steam profile's summary, headline or links fields.
+
+    //Search user's steamworks data for twitch.tv urls.
+    //We're assuming they would only put their own url on their page
     new channel_regex = CompileRegex("twitch.tv/(\\w+)");
     MatchRegex(channel_regex, data);
     
     if(GetRegexSubstring(channel_regex, 1, channel, sizeof(channel)))
     {
+        //A twitch url was found; assume it is the player's
+        g_HasTwitchChannel[client] = true;
         QueryTwitchApi(client, channel);
     }
 }
@@ -126,6 +166,37 @@ QueryTwitchApi(client, String:channel[])
 
 ReceiveTwitchApi(HTTPRequestHandle:request, bool:successful, HTTPStatusCode:code, any:userid)
 {
+    new client = GetClientOfUserId(userid);
+
+    if(!successful || code != HTTPStatusCode_OK)
+    {
+        LogError("[Twitch] Error at RecieveTwitchApi (HTTP Code %d; success %d)", code, successful);
+        Steam_ReleaseHTTPRequest(request);
+        return;
+    }
+
+    decl String:data[4096];
+    Steam_GetHTTPResponseBodyData(request, data, sizeof(data));
+    Steam_ReleaseHTTPRequest(request);
+
+    //parse JSON response
+    new Handle:json = json_load(data);
+    new Handle:stream = json_object_get(json, "stream");
+
+    if(stream == INVALID_HANDLE)
+    {
+        //json is wrong
+    }else if(json_is_null(stream))
+    {
+        //Stream object is null, thus player is not streaming
+        g_IsStreaming[client] = false;
+    }else{
+        //Player is streaming
+        g_IsStreaming[client] = true;
+
+        //Get more data
+
+    }
 }
 
 bool:IsEnabled()
