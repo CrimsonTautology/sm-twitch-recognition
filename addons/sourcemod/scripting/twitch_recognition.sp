@@ -1,10 +1,13 @@
 /**
  * vim: set ts=4 :
  * =============================================================================
- * _plugin_name_
- * TODO: Describe this plugin
+ * sm_twitch_recognition
+ * Idea is to scan a player's steam profile for a url to twitch.tv.  It would
+ * be assumed that they put their own url on their profile.  Then that twitch
+ * channel is queried to check if it is currently streaming. If it is then
+ * that player is streaming live on the server right now.
  *
- * Copyright _the_year_ _your_name_
+ * Copyright 2014 CrimsonTautology
  * =============================================================================
  *
  */
@@ -15,16 +18,17 @@
 #include <twitch_recognition>
 #include <regex>
 #include <steamtools>
+#include <smjansson>
 
 #define PLUGIN_VERSION "0.1"
 
 public Plugin:myinfo =
 {
-    name = "_plugin_name_",
-    author = "_your_name_",
-    description = "TODO: description",
+    name = "Twitch Recognition",
+    author = "CrimsonTautology",
+    description = "Recognize which players on the server are livestreaming to twitch.tv",
     version = PLUGIN_VERSION,
-    url = "https://github.com/_your_name_/_plugin_name_"
+    url = "https://github.com/CrimsonTautology/sm_twitch_recognition"
 };
 
 

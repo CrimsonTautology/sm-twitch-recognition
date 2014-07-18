@@ -1,4 +1,4 @@
-Copyright (c) _the_year_ _your_name_
+Copyright (c) 2014 CrimsonTautology
 
 MIT License
 
