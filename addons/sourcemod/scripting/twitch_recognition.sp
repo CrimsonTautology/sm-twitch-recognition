@@ -126,8 +126,10 @@ public ReceiveSteamWorksApi(HTTPRequestHandle:request, bool:successful, HTTPStat
         return;
     }
 
-    decl String:data[4096], String:channel[256];
-    Steam_GetHTTPResponseBodyData(request, data, sizeof(data));
+    new  body_size = Steam_GetHTTPResponseBodySize(request); 
+    decl String:data[body_size], String:channel[256];
+
+    Steam_GetHTTPResponseBodyData(request, data, body_size);
     Steam_ReleaseHTTPRequest(request);
 
     //NOTE : This is very sloppy; the text returned could well beover 20kb;
@@ -145,6 +147,8 @@ public ReceiveSteamWorksApi(HTTPRequestHandle:request, bool:successful, HTTPStat
         //A twitch url was found; assume it is the player's
         g_HasTwitchChannel[client] = true;
         QueryTwitchApi(client, channel);
+    }else{
+        PrintToChatAll("%d is not a twitch user", client); //TODO
     }
 }
 
