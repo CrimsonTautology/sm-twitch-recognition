@@ -104,13 +104,13 @@ QuerySteamWorksApi(client)
     Steam_GetCSteamIDForClient(client, uid, sizeof(uid));
 
     //uid = "76561197967876119";
-    //Format(url, sizeof(url), "http://steamcommunity.com/profiles/%s/?xml=1", uid);
-    uid = "hereIsAModelOfACalciumMolecule";
-    Format(url, sizeof(url), "http://steamcommunity.com/id/%s/?xml=1", uid);
+    Format(url, sizeof(url), "http://steamcommunity.com/profiles/%s/?xml=1", uid);
+    //uid = "hereIsAModelOfACalciumMolecule";
+    //Format(url, sizeof(url), "http://steamcommunity.com/id/%s/?xml=1", uid);
     new HTTPRequestHandle:request = Steam_CreateHTTPRequest(HTTPMethod_GET, url);
     if(request == INVALID_HTTP_HANDLE) return;
 
-    Steam_SetHTTPRequestHeaderValue(request, "Content-Length", "0");
+    //Steam_SetHTTPRequestHeaderValue(request, "Content-Length", "0");
     Steam_SetHTTPRequestNetworkActivityTimeout(request, 5);
     Steam_SendHTTPRequest(request, ReceiveSteamWorksApi, GetClientUserId(client));
 
@@ -125,6 +125,8 @@ public ReceiveSteamWorksApi(HTTPRequestHandle:request, bool:successful, HTTPStat
     {
         new location_size = Steam_GetHTTPResponseHeaderSize(request, "Location:");
         PrintToChatAll("LocationSize: %d", location_size);//TODO
+        new body_size = Steam_GetHTTPResponseBodySize(request); 
+        PrintToChatAll("BodySize: %d", body_size);//TODO
         decl String:location[location_size];
         Steam_ReleaseHTTPRequest(request);
         return;
