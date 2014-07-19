@@ -41,12 +41,6 @@ task :install do
 
   #Install extensions if they don't exist
   install_filetype '*.so', EXTENSIONS, false
-
-  #Install default configfiles if they don't exist
-  install_filetype '*.cfg', CFG, false
-
-  #Install data configfiles
-  install_filetype '*.cfg', CONFIGS
 end
  
 desc "Clean up compiled files"
