@@ -31,8 +31,6 @@ public Plugin:myinfo =
     url = "https://github.com/CrimsonTautology/sm_twitch_recognition"
 };
 
-#define MAX_COMMUNITYID_LENGTH 18 
-
 new bool:g_DoTwitchCheck[MAXPLAYERS+1] = {false, ...};
 new bool:g_HasTwitchChannel[MAXPLAYERS+1] = {false, ...};
 new bool:g_IsStreaming[MAXPLAYERS+1] = {false, ...};
@@ -102,41 +100,54 @@ QuerySteamWorksApi(client)
     PrintToChatAll("QuerySteamWorksApi: %d", client); //TODO
 
     //Build steamworks url
-    decl String:url[256], String:uid[MAX_COMMUNITYID_LENGTH];
+    decl String:url[512], String:uid[128];
     Steam_GetCSteamIDForClient(client, uid, sizeof(uid));
-    Format(url, sizeof(url),
-            "%s%s/%s", STEAM_WORKS_ROUTE, uid, STEAM_WORKS_XML_PARAM);
+
+    //uid = "76561197967876119";
+    //Format(url, sizeof(url), "http://steamcommunity.com/profiles/%s/?xml=1", uid);
+    uid = "hereIsAModelOfACalciumMolecule";
+    Format(url, sizeof(url), "http://steamcommunity.com/id/%s/?xml=1", uid);
+    new HTTPRequestHandle:request = Steam_CreateHTTPRequest(HTTPMethod_GET, url);
+    if(request == INVALID_HTTP_HANDLE) return;
+
+    Steam_SetHTTPRequestHeaderValue(request, "Content-Length", "0");
+    Steam_SetHTTPRequestNetworkActivityTimeout(request, 5);
+    Steam_SendHTTPRequest(request, ReceiveSteamWorksApi, GetClientUserId(client));
 
     PrintToChatAll("%s", url);//TODO
-    new HTTPRequestHandle:request = Steam_CreateHTTPRequest(HTTPMethod_GET, url);
 
-    if(request == INVALID_HTTP_HANDLE)
-    {
-        return;
-    }
-    //Steam_SetHTTPRequestGetOrPostParameter(request, "l", "english"); //Steamworks does not send content-length unless there is a parameter?
-    Steam_SetHTTPRequestHeaderValue(request, "Content-Length", "0");
-
-    new player = client > 0 ? GetClientUserId(client) : 0;
-    Steam_SendHTTPRequest(request, ReceiveSteamWorksApi, player);
 }
 
 public ReceiveSteamWorksApi(HTTPRequestHandle:request, bool:successful, HTTPStatusCode:code, any:userid)
 {
     new client = GetClientOfUserId(userid);
-    if(!successful || code != HTTPStatusCode_OK)
+    if(successful && code == HTTPStatusCode_Invalid)
+    {
+        new location_size = Steam_GetHTTPResponseHeaderSize(request, "Location:");
+        PrintToChatAll("LocationSize: %d", location_size);//TODO
+        decl String:location[location_size];
+        Steam_ReleaseHTTPRequest(request);
+        return;
+
+    }else if(!successful || code != HTTPStatusCode_OK)
     {
         LogError("[Twitch] Error at RecieveSteamWorksApi (HTTP Code %d; success %d)", code, successful);
         Steam_ReleaseHTTPRequest(request);
         return;
     }
 
-    new  body_size = Steam_GetHTTPResponseBodySize(request); 
+    decl String:channel[256];
+    //Steam_GetHTTPResponseHeaderValue(request, "Location", location, location_size);
+    //PrintToChatAll("Location: %s", location);
+
+    new body_size = Steam_GetHTTPResponseBodySize(request); 
     PrintToChatAll("BodySize: %d", body_size);//TODO
-    decl String:data[body_size], String:channel[256];
+    decl String:data[body_size];
 
     Steam_GetHTTPResponseBodyData(request, data, body_size);
     Steam_ReleaseHTTPRequest(request);
+
+
 
     //NOTE : This is very sloppy; the text returned could well beover 20kb;
     //most of the group and owned game stuff is useless or could contain
